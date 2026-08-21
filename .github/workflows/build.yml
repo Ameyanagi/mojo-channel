@@ -100,7 +100,7 @@ jobs:
           pixi-version: v0.76.2
           run-install: false
       - name: Index channel
-        run: pixi exec rattler-index fs .
+        run: pixi exec rattler-index fs --force .
       - name: Commit and push
         run: |
           set -euo pipefail
