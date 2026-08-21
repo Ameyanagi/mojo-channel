@@ -5,16 +5,16 @@ on:
     inputs:
       shuhafft_ref:
         description: shuhafft ref to build
-        default: wave3-real-fft
+        default: main
       moji_ref:
         description: moji ref to build
-        default: wave3-width
+        default: main
       hibana_ref:
         description: hibana ref to build
-        default: wave3-scoring
+        default: main
       mojotui_ref:
         description: mojotui ref to build
-        default: wave3-charts
+        default: main
 
 permissions:
   contents: read
