@@ -1,0 +1,112 @@
+name: Build channel
+
+on:
+  workflow_dispatch:
+    inputs:
+      shuhafft_ref:
+        description: shuhafft ref to build
+        default: agent/wave3-real-fft
+      moji_ref:
+        description: moji ref to build
+        default: agent/wave3-width
+      hibana_ref:
+        description: hibana ref to build
+        default: agent/wave3-scoring
+      mojotui_ref:
+        description: mojotui ref to build
+        default: agent/wave3-charts
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-14]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: Ameyanagi/shuhafft
+          ref: ${{ inputs.shuhafft_ref }}
+          path: repos/shuhafft
+      - uses: actions/checkout@v7
+        with:
+          repository: Ameyanagi/moji
+          ref: ${{ inputs.moji_ref }}
+          path: repos/moji
+      - uses: actions/checkout@v7
+        with:
+          repository: Ameyanagi/hibana
+          ref: ${{ inputs.hibana_ref }}
+          path: repos/hibana
+      - uses: actions/checkout@v7
+        with:
+          repository: Ameyanagi/mojotui
+          ref: ${{ inputs.mojotui_ref }}
+          path: repos/mojotui
+      - uses: prefix-dev/setup-pixi@v0.10.1
+        with:
+          pixi-version: v0.76.2
+          run-install: false
+      - name: Build packages
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/out"
+          CHANNELS="-c conda-forge -c https://conda.modular.com/max -c https://repo.prefix.dev/modular-community"
+          for repo in shuhafft moji hibana; do
+            pixi exec rattler-build build \
+              --recipe "repos/$repo/conda.recipe/recipe.yaml" \
+              --output-dir "$OUT" $CHANNELS
+          done
+          # mojotui needs the just-built mojo-moji at build time
+          pixi exec rattler-build build \
+            --recipe repos/mojotui/conda.recipe/recipe.yaml \
+            --output-dir "$OUT" -c "file://$OUT" $CHANNELS
+          find "$OUT" -name '*.conda' -print
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-${{ matrix.os }}
+          path: out/*/*.conda
+          if-no-files-found: error
+
+  publish:
+    name: Publish channel
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency:
+      group: channel-publish
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v4
+        with:
+          path: incoming
+          merge-multiple: true
+      - name: Merge packages into channel layout
+        run: |
+          set -euo pipefail
+          for plat_dir in incoming/*/; do
+            plat="$(basename "$plat_dir")"
+            mkdir -p "$plat"
+            cp -v "$plat_dir"*.conda "$plat"/
+          done
+      - uses: prefix-dev/setup-pixi@v0.10.1
+        with:
+          pixi-version: v0.76.2
+          run-install: false
+      - name: Index channel
+        run: pixi exec rattler-index fs .
+      - name: Commit and push
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A ':!incoming'
+          git status --short
+          git commit -m "Publish packages built from ${{ inputs.shuhafft_ref }} / ${{ inputs.moji_ref }} / ${{ inputs.hibana_ref }} / ${{ inputs.mojotui_ref }}" || echo "nothing to commit"
+          git push
