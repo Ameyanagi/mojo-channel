@@ -6,4 +6,4 @@ Usage in pixi.toml:
 
     channels = ["https://ameyanagi.github.io/mojo-channel", ...]
 
-Packages are built from the agent/wave3-* branches; osx-arm64 only for now (Linux builds will come from CI). This channel is interim until packages land on modular-community.
+Packages are built from the wave3-* branches; osx-arm64 only for now (Linux builds will come from CI). This channel is interim until packages land on modular-community.
