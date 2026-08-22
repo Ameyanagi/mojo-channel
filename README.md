@@ -28,7 +28,9 @@ both `pixi.toml` and `conda.recipe/recipe.yaml`.
 Only the final publication job has `contents: write`. It rejects an existing
 package filename with different bytes, records source and artifact hashes in
 `artifacts.tsv`, regenerates the channel indexes, commits one additive update,
-and verifies a clean install on every platform.
+and verifies that each exact local artifact resolves with the Modular and Conda
+Forge channels. Cross-platform verification is solve-only, so the Linux
+publisher never links or executes macOS packages (or vice versa).
 
 Published package files are never replaced. Fixes use a new package version or
 an incremented Conda build number.

@@ -267,17 +267,14 @@ jobs:
                   and .sha256 == $digest' \
               "${subdir}/repodata.json" >/dev/null
           done < incoming/published.tsv
-      - name: Resolve and install each exact candidate archive
+      - name: Solve each exact candidate archive without installation
         run: |
           set -euo pipefail
           while IFS=$'\t' read -r destination subdir _digest; do
-            pixi exec --force-reinstall \
-              --platform "$subdir" \
-              --spec "file://${GITHUB_WORKSPACE}/${destination}" \
-              --channel "file://${GITHUB_WORKSPACE}" \
-              --channel https://conda.modular.com/max \
-              --channel conda-forge \
-              /usr/bin/true
+            scripts/verify_candidate_solve.sh \
+              "$destination" \
+              "$subdir" \
+              "$GITHUB_WORKSPACE"
           done < incoming/published.tsv
       - name: Commit and push
         env:

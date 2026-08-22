@@ -40,3 +40,18 @@ jobs:
             actionlint \
             -ignore 'unexpected key "queue" for "concurrency" section' \
             .github/workflows/*.yml
+          pixi exec \
+            --spec 'shellcheck=0.10.0' \
+            shellcheck scripts/*.sh
+      - name: Test cross-platform solve-only verification
+        run: |
+          set -euo pipefail
+          for subdir in linux-64 linux-aarch64 osx-arm64; do
+            artifact="$(find "$subdir" -maxdepth 1 -type f \
+              -name 'mojo-shuhafft-*.conda' -print -quit)"
+            [[ -n "$artifact" ]]
+            scripts/verify_candidate_solve.sh \
+              "$artifact" \
+              "$subdir" \
+              "$GITHUB_WORKSPACE"
+          done
