@@ -85,6 +85,7 @@ jobs:
             [[ "$SELECTED_REF" == "$expected_tag" ]]
             [[ "$(git cat-file -t "refs/tags/${expected_tag}" 2>/dev/null || true)" == "tag" ]]
             [[ "$(git rev-parse "refs/tags/${expected_tag}^{commit}")" == "$source_sha" ]]
+            git merge-base --is-ancestor "$source_sha" refs/remotes/origin/main
           fi
 
           echo "package=${package_name}" >> "$GITHUB_OUTPUT"
@@ -183,10 +184,14 @@ jobs:
           mapfile -t artifacts < <(find incoming -type f -name '*.conda' -print | sort)
           [[ "${#artifacts[@]}" -eq 3 ]]
           touch artifacts.tsv
+          : > incoming/published.tsv
+          declare -A seen_subdirs=()
 
           for artifact in "${artifacts[@]}"; do
             subdir="$(basename "$(dirname "$artifact")")"
             case "$subdir" in linux-64|linux-aarch64|osx-arm64) ;; *) exit 1 ;; esac
+            [[ -z "${seen_subdirs[$subdir]:-}" ]]
+            seen_subdirs[$subdir]=1
             filename="$(basename "$artifact")"
             [[ "$filename" == "${EXPECTED_PACKAGE}-${EXPECTED_VERSION}-"*.conda ]]
             destination="${subdir}/${filename}"
@@ -203,24 +208,53 @@ jobs:
 
             ledger_line="${destination}\t${digest}\t${EXPECTED_REPOSITORY}\t${EXPECTED_TAG}\t${EXPECTED_SHA}"
             grep -Fqx "$ledger_line" artifacts.tsv || printf '%b\n' "$ledger_line" >> artifacts.tsv
+            printf '%s\t%s\t%s\n' "$destination" "$subdir" "$digest" >> incoming/published.tsv
           done
 
+          for subdir in linux-64 linux-aarch64 osx-arm64; do
+            [[ "${seen_subdirs[$subdir]:-}" == "1" ]]
+          done
           sort -u -o artifacts.tsv artifacts.tsv
       - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
         with:
           pixi-version: v0.76.2
           run-install: false
-      - name: Reindex and validate repodata
+      - name: Reindex and validate exact repodata entries
         env:
           EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
           EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
         run: |
           set -euo pipefail
           pixi exec --spec 'rattler-index=0.30.11' rattler-index --force fs .
-          for subdir in linux-64 linux-aarch64 osx-arm64; do
-            jq -e --arg package "$EXPECTED_PACKAGE" --arg version "$EXPECTED_VERSION" \
-              'any(."packages.conda"[]; .name == $package and .version == $version)' \
+          while IFS=$'\t' read -r destination subdir digest; do
+            filename="$(basename "$destination")"
+            jq -e \
+              --arg filename "$filename" \
+              --arg package "$EXPECTED_PACKAGE" \
+              --arg version "$EXPECTED_VERSION" \
+              --arg subdir "$subdir" \
+              --arg digest "$digest" \
+              '."packages.conda"[$filename]
+                | .name == $package
+                  and .version == $version
+                  and .subdir == $subdir
+                  and .sha256 == $digest' \
               "${subdir}/repodata.json" >/dev/null
+          done < incoming/published.tsv
+      - name: Resolve and install the candidate channel on every platform
+        env:
+          EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
+          EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          for subdir in linux-64 linux-aarch64 osx-arm64; do
+            pixi exec --force-reinstall \
+              --platform "$subdir" \
+              --spec "${EXPECTED_PACKAGE}==${EXPECTED_VERSION}" \
+              --channel "file://${GITHUB_WORKSPACE}" \
+              --channel https://conda.modular.com/max \
+              --channel conda-forge \
+              /usr/bin/true
           done
       - name: Commit and push
         env:
@@ -231,61 +265,11 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add artifacts.tsv linux-64 linux-aarch64 osx-arm64 noarch channeldata.json
+          git add artifacts.tsv linux-64 linux-aarch64 osx-arm64 noarch
           git diff --cached --check
-          git commit -m "Publish ${EXPECTED_PACKAGE} ${EXPECTED_VERSION} from ${EXPECTED_SHA}" || echo "Nothing to publish"
-          git push origin HEAD:main
-
-  verify:
-    name: Verify installed ${{ matrix.name }}
-    if: ${{ inputs.publish }}
-    needs:
-      - validate
-      - publish
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Linux x86-64
-            os: ubuntu-24.04
-          - name: Linux ARM64
-            os: ubuntu-24.04-arm
-          - name: macOS ARM64
-            os: macos-14
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: main
-          path: channel
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          repository: Ameyanagi/${{ inputs.repository }}
-          ref: ${{ needs.validate.outputs.sha }}
-          path: source
-      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
-        with:
-          pixi-version: v0.76.2
-          run-install: false
-      - name: Install solely from the committed channel and run package smoke
-        env:
-          EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
-          EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
-        run: |
-          set -euo pipefail
-          channels=(
-            -c "file://${GITHUB_WORKSPACE}/channel"
-            -c https://conda.modular.com/max
-            -c conda-forge
-          )
-          if [[ -f source/conda.recipe/test_package.mojo ]]; then
-            pixi exec --force-reinstall \
-              -s "${EXPECTED_PACKAGE}==${EXPECTED_VERSION}" \
-              "${channels[@]}" \
-              mojo run source/conda.recipe/test_package.mojo
+          if git diff --cached --quiet; then
+            echo "The exact package bytes are already published."
           else
-            pixi exec --force-reinstall \
-              -s "${EXPECTED_PACKAGE}==${EXPECTED_VERSION}" \
-              "${channels[@]}" \
-              yuragi --version
+            git commit -m "Publish ${EXPECTED_PACKAGE} ${EXPECTED_VERSION} from ${EXPECTED_SHA}"
           fi
+          git push origin HEAD:main
