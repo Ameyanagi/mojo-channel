@@ -1,112 +1,291 @@
-name: Build channel
+name: Build and publish package
 
 on:
   workflow_dispatch:
     inputs:
-      shuhafft_ref:
-        description: shuhafft ref to build
+      repository:
+        description: Ecosystem repository to build
+        required: true
+        type: choice
+        options:
+          - akari
+          - hibana
+          - kagerou
+          - moji
+          - mojotui
+          - nagare
+          - nami
+          - nerai
+          - sen
+          - shuhafft
+          - yomi
+          - yuragi
+      ref:
+        description: Immutable tag for publication, or a branch/SHA for preflight
+        required: true
         default: main
-      moji_ref:
-        description: moji ref to build
-        default: main
-      hibana_ref:
-        description: hibana ref to build
-        default: main
-      mojotui_ref:
-        description: mojotui ref to build
-        default: main
+        type: string
+      publish:
+        description: Commit packages to the public channel (requires an annotated version tag)
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 jobs:
+  validate:
+    name: Validate source metadata
+    runs-on: ubuntu-24.04
+    outputs:
+      package: ${{ steps.metadata.outputs.package }}
+      sha: ${{ steps.metadata.outputs.sha }}
+      version: ${{ steps.metadata.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: Ameyanagi/${{ inputs.repository }}
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          path: source
+      - name: Verify version, package identity, compiler, and publication ref
+        id: metadata
+        working-directory: source
+        env:
+          PUBLISH: ${{ inputs.publish }}
+          SELECTED_REF: ${{ inputs.ref }}
+          SELECTED_REPOSITORY: ${{ inputs.repository }}
+        run: |
+          set -euo pipefail
+
+          workspace_version="$(sed -n 's/^version = "\([^"]*\)"$/\1/p' pixi.toml)"
+          recipe_version="$(sed -n 's/^  version: "\([^"]*\)"$/\1/p' conda.recipe/recipe.yaml)"
+          package_name="$(awk '/^package:/{in_package=1; next} in_package && /^  name:/{print $2; exit}' conda.recipe/recipe.yaml)"
+          mojo_requirement="$(sed -n 's/^mojo = "\([^"]*\)"$/\1/p' pixi.toml)"
+          source_sha="$(git rev-parse HEAD)"
+
+          [[ "$workspace_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$workspace_version" != "0.0.0" ]]
+          [[ "$recipe_version" == "$workspace_version" ]]
+          [[ "$mojo_requirement" == "==1.0.0" ]]
+
+          case "${SELECTED_REPOSITORY}:${package_name}" in
+            akari:mojo-akari|hibana:mojo-hibana|kagerou:mojo-kagerou|moji:mojo-moji|\
+            mojotui:mojo-mojotui|nagare:mojo-nagare|nami:mojo-nami|nerai:mojo-nerai|\
+            sen:mojo-sen|shuhafft:mojo-shuhafft|yomi:mojo-yomi|yuragi:yuragi) ;;
+            *)
+              echo "Unexpected repository/package pair: ${SELECTED_REPOSITORY}:${package_name}" >&2
+              exit 1
+              ;;
+          esac
+
+          if [[ "$PUBLISH" == "true" ]]; then
+            expected_tag="v${workspace_version}"
+            [[ "$SELECTED_REF" == "$expected_tag" ]]
+            [[ "$(git cat-file -t "refs/tags/${expected_tag}" 2>/dev/null || true)" == "tag" ]]
+            [[ "$(git rev-parse "refs/tags/${expected_tag}^{commit}")" == "$source_sha" ]]
+          fi
+
+          echo "package=${package_name}" >> "$GITHUB_OUTPUT"
+          echo "sha=${source_sha}" >> "$GITHUB_OUTPUT"
+          echo "version=${workspace_version}" >> "$GITHUB_OUTPUT"
+          printf 'Validated %s %s at %s\n' "$package_name" "$workspace_version" "$source_sha"
+
   build:
-    name: Build ${{ matrix.os }}
+    name: Build ${{ matrix.name }}
+    needs: validate
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-14]
+        include:
+          - name: Linux x86-64
+            os: ubuntu-24.04
+            subdir: linux-64
+          - name: Linux ARM64
+            os: ubuntu-24.04-arm
+            subdir: linux-aarch64
+          - name: macOS ARM64
+            os: macos-14
+            subdir: osx-arm64
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          repository: Ameyanagi/shuhafft
-          ref: ${{ inputs.shuhafft_ref }}
-          path: repos/shuhafft
-      - uses: actions/checkout@v7
-        with:
-          repository: Ameyanagi/moji
-          ref: ${{ inputs.moji_ref }}
-          path: repos/moji
-      - uses: actions/checkout@v7
-        with:
-          repository: Ameyanagi/hibana
-          ref: ${{ inputs.hibana_ref }}
-          path: repos/hibana
-      - uses: actions/checkout@v7
-        with:
-          repository: Ameyanagi/mojotui
-          ref: ${{ inputs.mojotui_ref }}
-          path: repos/mojotui
-      - uses: prefix-dev/setup-pixi@v0.10.1
+          repository: Ameyanagi/${{ inputs.repository }}
+          ref: ${{ needs.validate.outputs.sha }}
+          path: source
+      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
         with:
           pixi-version: v0.76.2
-          run-install: false
-      - name: Build packages
+          cache: true
+          working-directory: source
+      - name: Run locked checks and installed-package tests
+        working-directory: source
         run: |
           set -euo pipefail
-          OUT="$GITHUB_WORKSPACE/out"
-          CHANNELS="-c conda-forge -c https://conda.modular.com/max -c https://repo.prefix.dev/modular-community"
-          for repo in shuhafft moji hibana; do
-            pixi exec rattler-build build \
-              --recipe "repos/$repo/conda.recipe/recipe.yaml" \
-              --output-dir "$OUT" $CHANNELS
-          done
-          # mojotui needs the just-built mojo-moji at build time
-          pixi exec rattler-build build \
-            --recipe repos/mojotui/conda.recipe/recipe.yaml \
-            --output-dir "$OUT" -c "file://$OUT" $CHANNELS
-          find "$OUT" -name '*.conda' -print
-      - uses: actions/upload-artifact@v4
+          pixi run --locked check
+          pixi run --locked package
+      - name: Validate the native artifact
+        working-directory: source
+        env:
+          EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
+          EXPECTED_SUBDIR: ${{ matrix.subdir }}
+          EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          artifacts=()
+          while IFS= read -r artifact; do
+            artifacts+=("$artifact")
+          done < <(find "output/${EXPECTED_SUBDIR}" -maxdepth 1 -type f \
+            -name "${EXPECTED_PACKAGE}-${EXPECTED_VERSION}-*.conda" -print)
+          [[ "${#artifacts[@]}" -eq 1 ]]
+          shasum -a 256 "${artifacts[0]}" | tee "package-${EXPECTED_SUBDIR}.sha256"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: packages-${{ matrix.os }}
-          path: out/*/*.conda
+          name: package-${{ inputs.repository }}-${{ matrix.subdir }}
+          path: |
+            source/output/${{ matrix.subdir }}/*.conda
+            source/package-${{ matrix.subdir }}.sha256
           if-no-files-found: error
 
   publish:
-    name: Publish channel
-    needs: build
+    name: Publish immutable channel update
+    if: ${{ inputs.publish }}
+    needs:
+      - validate
+      - build
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     concurrency:
-      group: channel-publish
+      group: mojo-channel-publish
+      queue: max
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          ref: main
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: incoming
           merge-multiple: true
-      - name: Merge packages into channel layout
+      - name: Validate and merge immutable package files
+        env:
+          EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
+          EXPECTED_REPOSITORY: ${{ inputs.repository }}
+          EXPECTED_SHA: ${{ needs.validate.outputs.sha }}
+          EXPECTED_TAG: ${{ inputs.ref }}
+          EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
         run: |
           set -euo pipefail
-          for plat_dir in incoming/*/; do
-            plat="$(basename "$plat_dir")"
-            mkdir -p "$plat"
-            cp -v "$plat_dir"*.conda "$plat"/
+
+          mapfile -t artifacts < <(find incoming -type f -name '*.conda' -print | sort)
+          [[ "${#artifacts[@]}" -eq 3 ]]
+          touch artifacts.tsv
+
+          for artifact in "${artifacts[@]}"; do
+            subdir="$(basename "$(dirname "$artifact")")"
+            case "$subdir" in linux-64|linux-aarch64|osx-arm64) ;; *) exit 1 ;; esac
+            filename="$(basename "$artifact")"
+            [[ "$filename" == "${EXPECTED_PACKAGE}-${EXPECTED_VERSION}-"*.conda ]]
+            destination="${subdir}/${filename}"
+            digest="$(sha256sum "$artifact" | awk '{print $1}')"
+
+            if [[ -e "$destination" ]]; then
+              cmp --silent "$artifact" "$destination" || {
+                echo "Refusing to overwrite ${destination} with different bytes." >&2
+                exit 1
+              }
+            else
+              install -m 0644 "$artifact" "$destination"
+            fi
+
+            ledger_line="${destination}\t${digest}\t${EXPECTED_REPOSITORY}\t${EXPECTED_TAG}\t${EXPECTED_SHA}"
+            grep -Fqx "$ledger_line" artifacts.tsv || printf '%b\n' "$ledger_line" >> artifacts.tsv
           done
-      - uses: prefix-dev/setup-pixi@v0.10.1
+
+          sort -u -o artifacts.tsv artifacts.tsv
+      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
         with:
           pixi-version: v0.76.2
           run-install: false
-      - name: Index channel
-        run: pixi exec rattler-index fs --force .
+      - name: Reindex and validate repodata
+        env:
+          EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
+          EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          pixi exec --spec 'rattler-index=0.30.11' rattler-index --force fs .
+          for subdir in linux-64 linux-aarch64 osx-arm64; do
+            jq -e --arg package "$EXPECTED_PACKAGE" --arg version "$EXPECTED_VERSION" \
+              'any(.packages.conda[]; .name == $package and .version == $version)' \
+              "${subdir}/repodata.json" >/dev/null
+          done
       - name: Commit and push
+        env:
+          EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
+          EXPECTED_SHA: ${{ needs.validate.outputs.sha }}
+          EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git status --short
-          git commit -m "Publish packages built from ${{ inputs.shuhafft_ref }} / ${{ inputs.moji_ref }} / ${{ inputs.hibana_ref }} / ${{ inputs.mojotui_ref }}" || echo "nothing to commit"
-          git push
+          git add artifacts.tsv linux-64 linux-aarch64 osx-arm64 noarch channeldata.json
+          git diff --cached --check
+          git commit -m "Publish ${EXPECTED_PACKAGE} ${EXPECTED_VERSION} from ${EXPECTED_SHA}" || echo "Nothing to publish"
+          git push origin HEAD:main
+
+  verify:
+    name: Verify installed ${{ matrix.name }}
+    if: ${{ inputs.publish }}
+    needs:
+      - validate
+      - publish
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x86-64
+            os: ubuntu-24.04
+          - name: Linux ARM64
+            os: ubuntu-24.04-arm
+          - name: macOS ARM64
+            os: macos-14
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+          path: channel
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: Ameyanagi/${{ inputs.repository }}
+          ref: ${{ needs.validate.outputs.sha }}
+          path: source
+      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+        with:
+          pixi-version: v0.76.2
+          run-install: false
+      - name: Install solely from the committed channel and run package smoke
+        env:
+          EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
+          EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          channels=(
+            -c "file://${GITHUB_WORKSPACE}/channel"
+            -c https://conda.modular.com/max
+            -c conda-forge
+          )
+          if [[ -f source/conda.recipe/test_package.mojo ]]; then
+            pixi exec --force-reinstall \
+              -s "${EXPECTED_PACKAGE}==${EXPECTED_VERSION}" \
+              "${channels[@]}" \
+              mojo run source/conda.recipe/test_package.mojo
+          else
+            pixi exec --force-reinstall \
+              -s "${EXPECTED_PACKAGE}==${EXPECTED_VERSION}" \
+              "${channels[@]}" \
+              yuragi --version
+          fi
