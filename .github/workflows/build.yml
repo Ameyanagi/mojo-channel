@@ -96,9 +96,11 @@ jobs:
             git merge-base --is-ancestor "$source_sha" refs/remotes/origin/main
           fi
 
-          echo "package=${package_name}" >> "$GITHUB_OUTPUT"
-          echo "sha=${source_sha}" >> "$GITHUB_OUTPUT"
-          echo "version=${workspace_version}" >> "$GITHUB_OUTPUT"
+          {
+            echo "package=${package_name}"
+            echo "sha=${source_sha}"
+            echo "version=${workspace_version}"
+          } >> "$GITHUB_OUTPUT"
           printf 'Validated %s %s at %s\n' "$package_name" "$workspace_version" "$source_sha"
 
   build:
