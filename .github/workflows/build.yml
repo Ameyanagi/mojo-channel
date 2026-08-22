@@ -241,21 +241,18 @@ jobs:
                   and .sha256 == $digest' \
               "${subdir}/repodata.json" >/dev/null
           done < incoming/published.tsv
-      - name: Resolve and install the candidate channel on every platform
-        env:
-          EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
-          EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
+      - name: Resolve and install each exact candidate archive
         run: |
           set -euo pipefail
-          for subdir in linux-64 linux-aarch64 osx-arm64; do
+          while IFS=$'\t' read -r destination subdir _digest; do
             pixi exec --force-reinstall \
               --platform "$subdir" \
-              --spec "${EXPECTED_PACKAGE}==${EXPECTED_VERSION}" \
+              --spec "file://${GITHUB_WORKSPACE}/${destination}" \
               --channel "file://${GITHUB_WORKSPACE}" \
               --channel https://conda.modular.com/max \
               --channel conda-forge \
               /usr/bin/true
-          done
+          done < incoming/published.tsv
       - name: Commit and push
         env:
           EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
