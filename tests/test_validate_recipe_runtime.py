@@ -59,6 +59,20 @@ requirements:
         with self.assertRaisesRegex(validator.ValidationError, "requirements.host"):
             validator.validate_recipe(recipe)
 
+    def test_rejects_nested_mapping_under_required_sections(self) -> None:
+        for section in validator.SECTIONS:
+            with self.subTest(section=section):
+                recipe = VALID_RECIPE.replace(
+                    f"  {section}:\n",
+                    f"  {section}:\n    nested:\n",
+                    1,
+                )
+                with self.assertRaisesRegex(
+                    validator.ValidationError,
+                    rf"nested mappings.*requirements\.{section}",
+                ):
+                    validator.validate_recipe(recipe)
+
 
 if __name__ == "__main__":
     unittest.main()

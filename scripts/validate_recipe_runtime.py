@@ -65,6 +65,12 @@ def validate_recipe(recipe: str, expected_version: str = "1.0.0") -> None:
                 section_headers[active_section] += 1
             continue
 
+        if header and indent > 2 and active_section is not None:
+            raise ValidationError(
+                f"line {line_number}: nested mappings are not allowed under "
+                f"requirements.{active_section}"
+            )
+
         if compiler_requirement and indent == 4 and active_section is not None:
             section_requirements[active_section].append((line_number, line.strip()))
 
