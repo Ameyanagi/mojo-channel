@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validator:
+    name: Validate package gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+        with:
+          pixi-version: v0.76.2
+          run-install: false
+      - name: Run validator tests
+        run: |
+          pixi exec \
+            --spec 'python=3.14.6' \
+            --spec 'zstd=1.5.7' \
+            python -m unittest discover -s tests -v
+      - name: Check Python
+        run: |
+          pixi exec --spec 'ruff=0.12.11' ruff check scripts tests
+          pixi exec --spec 'ruff=0.12.11' ruff format --check scripts tests
+      - name: Lint workflows
+        run: |
+          # actionlint 1.7.7 predates GitHub's documented concurrency.queue syntax.
+          pixi exec \
+            --spec 'actionlint=1.7.7' \
+            --spec 'shellcheck=0.10.0' \
+            actionlint \
+            -ignore 'unexpected key "queue" for "concurrency" section' \
+            .github/workflows/*.yml

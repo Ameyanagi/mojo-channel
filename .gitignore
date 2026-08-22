@@ -2,3 +2,4 @@
 _incoming and pixi caches are never committed_
 incoming/
 .pixi/
+__pycache__/
