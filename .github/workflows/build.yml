@@ -45,6 +45,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          path: channel
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
           repository: Ameyanagi/${{ inputs.repository }}
           ref: ${{ inputs.ref }}
           fetch-depth: 0
@@ -63,20 +66,15 @@ jobs:
           recipe_version="$(sed -n 's/^  version: "\([^"]*\)"$/\1/p' conda.recipe/recipe.yaml)"
           package_name="$(awk '/^package:/{in_package=1; next} in_package && /^  name:/{print $2; exit}' conda.recipe/recipe.yaml)"
           mojo_requirement="$(sed -n 's/^mojo = "\([^"]*\)"$/\1/p' pixi.toml)"
-          recipe_compiler_count="$(grep -Ec '^[[:space:]]*-[[:space:]]+mojo-compiler([[:space:]]|$)' conda.recipe/recipe.yaml || true)"
-          exact_recipe_compiler_count="$(grep -Ec '^[[:space:]]*-[[:space:]]+mojo-compiler[[:space:]]+==1\.0\.0[[:space:]]*$' conda.recipe/recipe.yaml || true)"
           source_sha="$(git rev-parse HEAD)"
 
           [[ "$workspace_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           [[ "$workspace_version" != "0.0.0" ]]
           [[ "$recipe_version" == "$workspace_version" ]]
           [[ "$mojo_requirement" == "==1.0.0" ]]
-          if [[ "$recipe_compiler_count" -ne 3 || "$exact_recipe_compiler_count" -ne 3 ]]; then
-            echo "Recipe must contain exactly three 'mojo-compiler ==1.0.0' requirement lines and no other mojo-compiler requirements." >&2
-            printf 'Found %s total and %s exact requirement lines.\n' \
-              "$recipe_compiler_count" "$exact_recipe_compiler_count" >&2
-            exit 1
-          fi
+          python3 ../channel/scripts/validate_recipe_runtime.py \
+            conda.recipe/recipe.yaml \
+            --expected-version 1.0.0
 
           case "${SELECTED_REPOSITORY}:${package_name}" in
             akari:mojo-akari|hibana:mojo-hibana|kagerou:mojo-kagerou|moji:mojo-moji|\
