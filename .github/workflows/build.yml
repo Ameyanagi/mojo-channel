@@ -46,12 +46,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           path: channel
+          persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: Ameyanagi/${{ inputs.repository }}
           ref: ${{ inputs.ref }}
           fetch-depth: 0
           path: source
+          persist-credentials: false
       - name: Verify version, package identity, compiler, and publication ref
         id: metadata
         working-directory: source
@@ -122,11 +124,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           path: channel
+          persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: Ameyanagi/${{ inputs.repository }}
           ref: ${{ needs.validate.outputs.sha }}
           path: source
+          persist-credentials: false
       - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
         with:
           pixi-version: v0.76.2
@@ -182,6 +186,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: main
+          persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: incoming
@@ -279,6 +284,7 @@ jobs:
           EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
           EXPECTED_SHA: ${{ needs.validate.outputs.sha }}
           EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -290,4 +296,7 @@ jobs:
           else
             git commit -m "Publish ${EXPECTED_PACKAGE} ${EXPECTED_VERSION} from ${EXPECTED_SHA}"
           fi
-          git push origin HEAD:main
+          git \
+            -c credential.helper= \
+            -c "credential.helper=!f() { printf '%s\\n' username=x-access-token \"password=\$GH_TOKEN\"; }; f" \
+            push origin HEAD:main
