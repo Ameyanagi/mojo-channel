@@ -219,7 +219,7 @@ jobs:
           pixi exec --spec 'rattler-index=0.30.11' rattler-index --force fs .
           for subdir in linux-64 linux-aarch64 osx-arm64; do
             jq -e --arg package "$EXPECTED_PACKAGE" --arg version "$EXPECTED_VERSION" \
-              'any(.packages.conda[]; .name == $package and .version == $version)' \
+              'any(."packages.conda"[]; .name == $package and .version == $version)' \
               "${subdir}/repodata.json" >/dev/null
           done
       - name: Commit and push
