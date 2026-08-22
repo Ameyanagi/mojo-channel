@@ -1,3 +1,6 @@
+linux-64/mojo-hibana-0.1.0-hb0f4dca_0.conda	2aa58ea6cd50786b673a050317107b25c3033fcc742646e3016c306c193a933d	hibana	v0.1.0	5786b567ab549db35e840dd7fbfcad9aca3728fb
 linux-64/mojo-shuhafft-0.1.0-hb0f4dca_0.conda	b5260bcc1df9feabf42fc501cfc9f813012c5369865cd6ea3cf041ce5ff10fab	shuhafft	v0.1.0	aee4abfe3afe3d9c22e052a94452a1c9cbb69af9
+linux-aarch64/mojo-hibana-0.1.0-he8cfe8b_0.conda	8b1266795db79819f36f4f66d71ef12ef09c7637af7f5637763292f06bf2701f	hibana	v0.1.0	5786b567ab549db35e840dd7fbfcad9aca3728fb
 linux-aarch64/mojo-shuhafft-0.1.0-he8cfe8b_0.conda	a38adf30ebde220476a71739094e680529a79067e8840556bb5215e751b1197a	shuhafft	v0.1.0	aee4abfe3afe3d9c22e052a94452a1c9cbb69af9
+osx-arm64/mojo-hibana-0.1.0-h60d57d3_0.conda	68d203394aad70c84b04a49722892efe04ee2ea2f846d12a593d4db4a0d25b21	hibana	v0.1.0	5786b567ab549db35e840dd7fbfcad9aca3728fb
 osx-arm64/mojo-shuhafft-0.1.0-h60d57d3_0.conda	74ec67c84dbfed8e4ebb36607fca7178ebab5d9a593023ecb92b940d94061451	shuhafft	v0.1.0	aee4abfe3afe3d9c22e052a94452a1c9cbb69af9
