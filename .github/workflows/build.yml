@@ -113,6 +113,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          path: channel
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
           repository: Ameyanagi/${{ inputs.repository }}
           ref: ${{ needs.validate.outputs.sha }}
           path: source
@@ -141,6 +144,10 @@ jobs:
           done < <(find "output/${EXPECTED_SUBDIR}" -maxdepth 1 -type f \
             -name "${EXPECTED_PACKAGE}-${EXPECTED_VERSION}-*.conda" -print)
           [[ "${#artifacts[@]}" -eq 1 ]]
+          pixi run --locked python3 \
+            ../channel/scripts/validate_conda_runtime.py \
+            --expected-version 1.0.0 \
+            "${artifacts[0]}"
           shasum -a 256 "${artifacts[0]}" | tee "package-${EXPECTED_SUBDIR}.sha256"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -171,6 +178,10 @@ jobs:
         with:
           path: incoming
           merge-multiple: true
+      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+        with:
+          pixi-version: v0.76.2
+          run-install: false
       - name: Validate and merge immutable package files
         env:
           EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
@@ -183,6 +194,12 @@ jobs:
 
           mapfile -t artifacts < <(find incoming -type f -name '*.conda' -print | sort)
           [[ "${#artifacts[@]}" -eq 3 ]]
+          pixi exec \
+            --spec 'python=3.14.6' \
+            --spec 'zstd=1.5.7' \
+            python scripts/validate_conda_runtime.py \
+            --expected-version 1.0.0 \
+            "${artifacts[@]}"
           touch artifacts.tsv
           : > incoming/published.tsv
           declare -A seen_subdirs=()
@@ -215,10 +232,6 @@ jobs:
             [[ "${seen_subdirs[$subdir]:-}" == "1" ]]
           done
           sort -u -o artifacts.tsv artifacts.tsv
-      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
-        with:
-          pixi-version: v0.76.2
-          run-install: false
       - name: Reindex and validate exact repodata entries
         env:
           EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
