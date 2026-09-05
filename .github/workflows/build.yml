@@ -11,6 +11,7 @@ on:
           - akari
           - hibana
           - kagerou
+          - kumihan
           - moji
           - mojotui
           - nagare
@@ -79,7 +80,7 @@ jobs:
             --expected-version 1.0.0
 
           case "${SELECTED_REPOSITORY}:${package_name}" in
-            akari:mojo-akari|hibana:mojo-hibana|kagerou:mojo-kagerou|moji:mojo-moji|\
+            akari:mojo-akari|hibana:mojo-hibana|kagerou:mojo-kagerou|kumihan:mojo-kumihan|moji:mojo-moji|\
             mojotui:mojo-mojotui|nagare:mojo-nagare|nami:mojo-nami|nerai:mojo-nerai|\
             sen:mojo-sen|shuhafft:mojo-shuhafft|yomi:mojo-yomi|yuragi:yuragi) ;;
             *)
@@ -131,7 +132,7 @@ jobs:
           ref: ${{ needs.validate.outputs.sha }}
           path: source
           persist-credentials: false
-      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+      - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
         with:
           pixi-version: v0.76.2
           cache: true
@@ -161,6 +162,18 @@ jobs:
             --expected-version 1.0.0 \
             "${artifacts[0]}"
           shasum -a 256 "${artifacts[0]}" | tee "package-${EXPECTED_SUBDIR}.sha256"
+      - name: Install exact native candidate in a clean consumer environment
+        if: inputs.repository == 'kumihan'
+        working-directory: source
+        env:
+          EXPECTED_SUBDIR: ${{ matrix.subdir }}
+          EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          artifact="$(find "output/${EXPECTED_SUBDIR}" -maxdepth 1 -type f \
+            -name "mojo-kumihan-${EXPECTED_VERSION}-*.conda" -print -quit)"
+          ../channel/scripts/verify_native_consumer.sh \
+            "$artifact" "$EXPECTED_SUBDIR" conda.recipe/test_package.mojo
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: package-${{ inputs.repository }}-${{ matrix.subdir }}
@@ -191,7 +204,7 @@ jobs:
         with:
           path: incoming
           merge-multiple: true
-      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+      - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
         with:
           pixi-version: v0.76.2
           run-install: false
@@ -267,6 +280,10 @@ jobs:
                   and .sha256 == $digest' \
               "${subdir}/repodata.json" >/dev/null
           done < incoming/published.tsv
+      - name: Audit the complete channel and preserve recorded provenance
+        run: |
+          pixi exec --spec 'python=3.14.6' --spec 'zstd=1.5.7' \
+            python scripts/validate_channel.py --baseline-ref HEAD .
       - name: Solve each exact candidate archive without installation
         run: |
           set -euo pipefail
