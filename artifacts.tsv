@@ -11,6 +11,7 @@ linux-64/mojo-sen-0.1.0-hb0f4dca_0.conda	4768fa911f21ba481c08ec7a985975a6a8a8a2e
 linux-64/mojo-shuhafft-0.1.0-hb0f4dca_0.conda	b5260bcc1df9feabf42fc501cfc9f813012c5369865cd6ea3cf041ce5ff10fab	shuhafft	v0.1.0	aee4abfe3afe3d9c22e052a94452a1c9cbb69af9
 linux-64/mojo-yomi-0.1.0-hb0f4dca_0.conda	d27866eb45a625afe282b90dacc1d985b03a04428483d3d60fab06fd17dcb5c9	yomi	v0.1.0	f5a0743c48d937dc98480390b1d930aa1059ea69
 linux-64/mojo-yomi-0.1.1-hb0f4dca_0.conda	8853ce7c075ab5028a6852ff7e06ed44159de46ae96e5c3bd3624448265bfbb3	yomi	v0.1.1	141e6096c39046aae1e5168983598a0d939c8bd2
+linux-64/mojo-yomi-0.1.2-hb0f4dca_0.conda	a7c444de7862b4875eed6caa86ab85c488ae04962740cbd0c9ca36e59ddf826b	yomi	v0.1.2	f72931f9edfe0d5d4c4968dbd70dd267c7f0bedd
 linux-64/yuragi-0.1.0-hb0f4dca_0.conda	93156bd9bdfcf47158a8a0c4f0a46e478130bf0d8662608bf56ff6d35931ccbf	yuragi	v0.1.0	213a5cb0bb7cf006ca7498fbc175f33929260fb5
 linux-aarch64/mojo-akari-0.1.1-he8cfe8b_0.conda	ba1554d409dcbf79fa0191d05c531c86ad190daf288faf4c3fde8cb801b0a64e	akari	v0.1.1	0b8164e2fe2feefe86f66bc8a36b5cbac53f61ad
 linux-aarch64/mojo-hibana-0.1.0-he8cfe8b_0.conda	8b1266795db79819f36f4f66d71ef12ef09c7637af7f5637763292f06bf2701f	hibana	v0.1.0	5786b567ab549db35e840dd7fbfcad9aca3728fb
@@ -25,6 +26,7 @@ linux-aarch64/mojo-sen-0.1.0-he8cfe8b_0.conda	b02f0d4af8c7d16da0bf79865b74601f00
 linux-aarch64/mojo-shuhafft-0.1.0-he8cfe8b_0.conda	a38adf30ebde220476a71739094e680529a79067e8840556bb5215e751b1197a	shuhafft	v0.1.0	aee4abfe3afe3d9c22e052a94452a1c9cbb69af9
 linux-aarch64/mojo-yomi-0.1.0-he8cfe8b_0.conda	c4d80d571c105e706b16adb1851ec5948e68d40b5ede8671fda6f27f10745686	yomi	v0.1.0	f5a0743c48d937dc98480390b1d930aa1059ea69
 linux-aarch64/mojo-yomi-0.1.1-he8cfe8b_0.conda	652572e6cc14eb722b3567f5cae31d7e41ab33c9849febce5dc6b9eb2bcefaf3	yomi	v0.1.1	141e6096c39046aae1e5168983598a0d939c8bd2
+linux-aarch64/mojo-yomi-0.1.2-he8cfe8b_0.conda	99ba8588b49f6f12c6ae84ff2e92a244996f0a50a5dcb5712ddca64ecba94fc5	yomi	v0.1.2	f72931f9edfe0d5d4c4968dbd70dd267c7f0bedd
 linux-aarch64/yuragi-0.1.0-he8cfe8b_0.conda	c9f6b5ca477a37ff0ba3e49480c2c13b3a458b7b0d3f4c45ce0de09cf1488b75	yuragi	v0.1.0	213a5cb0bb7cf006ca7498fbc175f33929260fb5
 osx-arm64/mojo-akari-0.1.1-h60d57d3_0.conda	cb31f2067b79762130905aa9a69214b8e3e24bb5692d868ee15ad507c00b6f64	akari	v0.1.1	0b8164e2fe2feefe86f66bc8a36b5cbac53f61ad
 osx-arm64/mojo-hibana-0.1.0-h60d57d3_0.conda	68d203394aad70c84b04a49722892efe04ee2ea2f846d12a593d4db4a0d25b21	hibana	v0.1.0	5786b567ab549db35e840dd7fbfcad9aca3728fb
@@ -39,4 +41,5 @@ osx-arm64/mojo-sen-0.1.0-h60d57d3_0.conda	1a2ddeb47bbcf0f6896972ef6e13a8b099d34a
 osx-arm64/mojo-shuhafft-0.1.0-h60d57d3_0.conda	74ec67c84dbfed8e4ebb36607fca7178ebab5d9a593023ecb92b940d94061451	shuhafft	v0.1.0	aee4abfe3afe3d9c22e052a94452a1c9cbb69af9
 osx-arm64/mojo-yomi-0.1.0-h60d57d3_0.conda	5b15cc8132579a9a4a99b45761080e53d912bfea1374a02149d2d41b16320b0a	yomi	v0.1.0	f5a0743c48d937dc98480390b1d930aa1059ea69
 osx-arm64/mojo-yomi-0.1.1-h60d57d3_0.conda	3a87cfc8b25e3a0fd4fa7eb0a79bb83b350b4f14b3e3f58213879315599140fa	yomi	v0.1.1	141e6096c39046aae1e5168983598a0d939c8bd2
+osx-arm64/mojo-yomi-0.1.2-h60d57d3_0.conda	4bd3d00a547844b251fa1b664ddd295f579c535344764f780ad16b95def92157	yomi	v0.1.2	f72931f9edfe0d5d4c4968dbd70dd267c7f0bedd
 osx-arm64/yuragi-0.1.0-h60d57d3_0.conda	6ea28c6499cc3609e137489b5577aa900fc66d2f687c9bf92f191fbf525037e2	yuragi	v0.1.0	213a5cb0bb7cf006ca7498fbc175f33929260fb5
