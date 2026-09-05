@@ -14,7 +14,7 @@ import urllib.request
 from pathlib import Path
 
 CHANNEL = "https://ameyanagi.github.io/mojo-channel"
-PACKAGES = ("mojo-kumihan", "mojo-sen", "mojo-mojotui")
+PACKAGES = ("mojo-kumihan", "mojo-sen", "mojo-mojotui", "mojo-yomi")
 NATIVE = {
     ("Linux", "x86_64"): "linux-64",
     ("Linux", "aarch64"): "linux-aarch64",

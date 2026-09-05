@@ -33,13 +33,27 @@ class ConsumerValidationTests(unittest.TestCase):
             records, self.expected, self.package, self.version, self.subdir
         )
 
-    def test_mojotui_is_a_supported_consumer_target(self) -> None:
-        args = argument_parser().parse_args(
-            [self.package, self.version, self.subdir, "smoke.mojo"]
-        )
-        self.assertEqual(args.package, self.package)
-        self.assertEqual(args.version, self.version)
-        self.assertEqual(self.validate([self.record]), self.record)
+    def test_supported_consumer_targets(self) -> None:
+        for package in ("mojo-kumihan", "mojo-sen", "mojo-mojotui", "mojo-yomi"):
+            with self.subTest(package=package):
+                args = argument_parser().parse_args(
+                    [package, self.version, self.subdir, "smoke.mojo"]
+                )
+                self.assertEqual(args.package, package)
+                self.assertEqual(args.version, self.version)
+                filename = f"{package}-{self.version}-hb0f4dca_0.conda"
+                expected = {filename: {"sha256": self.digest}}
+                record = dict(
+                    self.record,
+                    name=package,
+                    url=f"{CHANNEL}/{self.subdir}/{filename}",
+                )
+                self.assertEqual(
+                    validate_resolved_package(
+                        [record], expected, package, self.version, self.subdir
+                    ),
+                    record,
+                )
 
     def test_accepts_exact_native_identity_on_each_platform(self) -> None:
         for subdir in ("linux-64", "linux-aarch64", "osx-arm64"):
