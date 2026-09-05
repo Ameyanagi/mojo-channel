@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,7 +18,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+          fetch-depth: 0
+      - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
         with:
           pixi-version: v0.76.2
           run-install: false
@@ -27,6 +29,17 @@ jobs:
             --spec 'python=3.14.6' \
             --spec 'zstd=1.5.7' \
             python -m unittest discover -s tests -v
+      - name: Audit every published archive
+        run: |
+          pixi exec --spec 'python=3.14.6' --spec 'zstd=1.5.7' \
+            python scripts/validate_channel.py .
+      - name: Verify pull requests preserve immutable provenance
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          pixi exec --spec 'python=3.14.6' --spec 'zstd=1.5.7' \
+            python scripts/validate_channel.py --baseline-ref "$BASE_SHA" .
       - name: Check Python
         run: |
           pixi exec --spec 'ruff=0.12.11' ruff check scripts tests

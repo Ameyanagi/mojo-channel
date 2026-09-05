@@ -1,0 +1,65 @@
+name: Verify published consumer installation
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: Published library to verify
+        required: true
+        type: choice
+        options:
+          - kumihan
+          - sen
+      version:
+        description: Exact published X.Y.Z version and annotated source tag
+        required: true
+        default: 0.1.0
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  consumer:
+    name: Hosted consumer ${{ matrix.subdir }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            subdir: linux-64
+          - os: ubuntu-24.04-arm
+            subdir: linux-aarch64
+          - os: macos-14
+            subdir: osx-arm64
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: channel
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: Ameyanagi/${{ inputs.repository }}
+          ref: v${{ inputs.version }}
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
+        with:
+          pixi-version: v0.76.2
+          run-install: false
+      - name: Verify the immutable source tag and run the exact public consumer
+        env:
+          REPOSITORY: ${{ inputs.repository }}
+          VERSION: ${{ inputs.version }}
+          SUBDIR: ${{ matrix.subdir }}
+        run: |
+          set -euo pipefail
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$(git -C source cat-file -t "refs/tags/v$VERSION")" == tag ]]
+          [[ "$(git -C source rev-parse "refs/tags/v$VERSION^{commit}")" == "$(git -C source rev-parse HEAD)" ]]
+          pixi exec --spec 'python=3.14.6' python \
+            channel/scripts/verify_published_consumer.py \
+            "mojo-$REPOSITORY" "$VERSION" "$SUBDIR" source/conda.recipe/test_package.mojo

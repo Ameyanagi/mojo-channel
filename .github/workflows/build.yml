@@ -1,4 +1,4 @@
-name: Build and publish package
+name: Build and propose package publication
 
 on:
   workflow_dispatch:
@@ -11,6 +11,7 @@ on:
           - akari
           - hibana
           - kagerou
+          - kumihan
           - moji
           - mojotui
           - nagare
@@ -26,7 +27,7 @@ on:
         default: main
         type: string
       publish:
-        description: Commit packages to the public channel (requires an annotated version tag)
+        description: Propose an immutable channel update for review (requires an annotated version tag)
         required: true
         default: false
         type: boolean
@@ -79,7 +80,7 @@ jobs:
             --expected-version 1.0.0
 
           case "${SELECTED_REPOSITORY}:${package_name}" in
-            akari:mojo-akari|hibana:mojo-hibana|kagerou:mojo-kagerou|moji:mojo-moji|\
+            akari:mojo-akari|hibana:mojo-hibana|kagerou:mojo-kagerou|kumihan:mojo-kumihan|moji:mojo-moji|\
             mojotui:mojo-mojotui|nagare:mojo-nagare|nami:mojo-nami|nerai:mojo-nerai|\
             sen:mojo-sen|shuhafft:mojo-shuhafft|yomi:mojo-yomi|yuragi:yuragi) ;;
             *)
@@ -131,7 +132,7 @@ jobs:
           ref: ${{ needs.validate.outputs.sha }}
           path: source
           persist-credentials: false
-      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+      - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
         with:
           pixi-version: v0.76.2
           cache: true
@@ -161,6 +162,22 @@ jobs:
             --expected-version 1.0.0 \
             "${artifacts[0]}"
           shasum -a 256 "${artifacts[0]}" | tee "package-${EXPECTED_SUBDIR}.sha256"
+      - name: Install exact native candidate in a clean consumer environment
+        if: inputs.repository == 'kumihan'
+        working-directory: source
+        env:
+          EXPECTED_SUBDIR: ${{ matrix.subdir }}
+          EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          artifact="$(find "output/${EXPECTED_SUBDIR}" -maxdepth 1 -type f \
+            -name "mojo-kumihan-${EXPECTED_VERSION}-*.conda" -print -quit)"
+          if [[ -z "$artifact" ]]; then
+            echo "No native Kumihan artifact found for ${EXPECTED_SUBDIR} ${EXPECTED_VERSION}" >&2
+            exit 1
+          fi
+          ../channel/scripts/verify_native_consumer.sh \
+            "$artifact" "$EXPECTED_SUBDIR" conda.recipe/test_package.mojo
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: package-${{ inputs.repository }}-${{ matrix.subdir }}
@@ -170,7 +187,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Publish immutable channel update
+    name: Propose immutable channel update
     if: ${{ inputs.publish }}
     needs:
       - validate
@@ -178,6 +195,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      actions: write
     concurrency:
       group: mojo-channel-publish
       queue: max
@@ -191,7 +209,7 @@ jobs:
         with:
           path: incoming
           merge-multiple: true
-      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+      - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
         with:
           pixi-version: v0.76.2
           run-install: false
@@ -267,6 +285,10 @@ jobs:
                   and .sha256 == $digest' \
               "${subdir}/repodata.json" >/dev/null
           done < incoming/published.tsv
+      - name: Audit the complete channel and preserve recorded provenance
+        run: |
+          pixi exec --spec 'python=3.14.6' --spec 'zstd=1.5.7' \
+            python scripts/validate_channel.py --baseline-ref HEAD .
       - name: Solve each exact candidate archive without installation
         run: |
           set -euo pipefail
@@ -276,7 +298,8 @@ jobs:
               "$subdir" \
               "$GITHUB_WORKSPACE"
           done < incoming/published.tsv
-      - name: Commit and push
+      - name: Commit an immutable release branch and dispatch its checks
+        id: proposal
         env:
           EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
           EXPECTED_SHA: ${{ needs.validate.outputs.sha }}
@@ -287,13 +310,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add artifacts.tsv linux-64 linux-aarch64 osx-arm64 noarch
-          git diff --cached --check
-          if git diff --cached --quiet; then
-            echo "The exact package bytes are already published."
-          else
-            git commit -m "Publish ${EXPECTED_PACKAGE} ${EXPECTED_VERSION} from ${EXPECTED_SHA}"
-          fi
-          git \
-            -c credential.helper= \
-            -c "credential.helper=!f() { printf '%s\\n' username=x-access-token \"password=\$GH_TOKEN\"; }; f" \
-            push origin HEAD:main
+          scripts/propose_release.sh

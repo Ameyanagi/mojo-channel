@@ -1,0 +1,221 @@
+{
+  "linux-64/mojo-hibana-0.0.0-hb0f4dca_0.conda": {
+    "index": {
+      "arch": "x86_64",
+      "build": "hb0f4dca_0",
+      "build_number": 0,
+      "depends": [
+        "mojo-compiler >=1.0.0,<2.0a0"
+      ],
+      "license": "MIT OR Apache-2.0",
+      "name": "mojo-hibana",
+      "platform": "linux",
+      "subdir": "linux-64",
+      "timestamp": 1787303705937,
+      "version": "0.0.0"
+    },
+    "reason": "Retained pre-ledger artifact with unsupported non-exact Mojo runtime; no verified source provenance. Never select for supported consumer installations.",
+    "sha256": "e788bc1673b92a1ad79dd45487a6fcfedd385d3bcb2dd3805cec052320fb9de8"
+  },
+  "linux-64/mojo-moji-0.0.0-hb0f4dca_0.conda": {
+    "index": {
+      "arch": "x86_64",
+      "build": "hb0f4dca_0",
+      "build_number": 0,
+      "depends": [
+        "mojo-compiler >=1.0.0,<2.0a0"
+      ],
+      "license": "MIT OR Apache-2.0",
+      "name": "mojo-moji",
+      "platform": "linux",
+      "subdir": "linux-64",
+      "timestamp": 1787303699341,
+      "version": "0.0.0"
+    },
+    "reason": "Retained pre-ledger artifact with unsupported non-exact Mojo runtime; no verified source provenance. Never select for supported consumer installations.",
+    "sha256": "7ff1401642469b20b09802a443ba264fb80852e306648368ad1818dc94402910"
+  },
+  "linux-64/mojo-mojotui-0.1.0-hb0f4dca_0.conda": {
+    "index": {
+      "arch": "x86_64",
+      "build": "hb0f4dca_0",
+      "build_number": 0,
+      "depends": [
+        "mojo-compiler >=1.0.0,<2.0a0",
+        "mojo-moji"
+      ],
+      "license": "MIT OR Apache-2.0",
+      "name": "mojo-mojotui",
+      "platform": "linux",
+      "subdir": "linux-64",
+      "timestamp": 1787303711150,
+      "version": "0.1.0"
+    },
+    "reason": "Retained pre-ledger artifact with unsupported non-exact Mojo runtime; no verified source provenance. Never select for supported consumer installations.",
+    "sha256": "ba6141478ab9e32a9d706519992116272e9a76a8c9e852cf6c5d6fcf0d096d11"
+  },
+  "linux-64/mojo-shuhafft-0.0.0-hb0f4dca_0.conda": {
+    "index": {
+      "arch": "x86_64",
+      "build": "hb0f4dca_0",
+      "build_number": 0,
+      "depends": [
+        "mojo-compiler >=1.0.0,<2.0a0"
+      ],
+      "license": "MIT OR Apache-2.0",
+      "name": "mojo-shuhafft",
+      "platform": "linux",
+      "subdir": "linux-64",
+      "timestamp": 1787303691797,
+      "version": "0.0.0"
+    },
+    "reason": "Retained pre-ledger artifact with unsupported non-exact Mojo runtime; no verified source provenance. Never select for supported consumer installations.",
+    "sha256": "143dd61852260468722d53dd51f6d8511beb71ee70c13f45b04e6559dabb46a1"
+  },
+  "linux-aarch64/mojo-hibana-0.0.0-he8cfe8b_0.conda": {
+    "index": {
+      "arch": "aarch64",
+      "build": "he8cfe8b_0",
+      "build_number": 0,
+      "depends": [
+        "mojo-compiler >=1.0.0,<2.0a0"
+      ],
+      "license": "MIT OR Apache-2.0",
+      "name": "mojo-hibana",
+      "platform": "linux",
+      "subdir": "linux-aarch64",
+      "timestamp": 1787303705054,
+      "version": "0.0.0"
+    },
+    "reason": "Retained pre-ledger artifact with unsupported non-exact Mojo runtime; no verified source provenance. Never select for supported consumer installations.",
+    "sha256": "5c1991ba6f771293ca757cb1aab8a8bfea2ee36853f6f0b725ece48e05591b3b"
+  },
+  "linux-aarch64/mojo-moji-0.0.0-he8cfe8b_0.conda": {
+    "index": {
+      "arch": "aarch64",
+      "build": "he8cfe8b_0",
+      "build_number": 0,
+      "depends": [
+        "mojo-compiler >=1.0.0,<2.0a0"
+      ],
+      "license": "MIT OR Apache-2.0",
+      "name": "mojo-moji",
+      "platform": "linux",
+      "subdir": "linux-aarch64",
+      "timestamp": 1787303698699,
+      "version": "0.0.0"
+    },
+    "reason": "Retained pre-ledger artifact with unsupported non-exact Mojo runtime; no verified source provenance. Never select for supported consumer installations.",
+    "sha256": "0315c21f39dd737887c0cd2acbc2327bb774d399939c1555b1e39c182f2cac45"
+  },
+  "linux-aarch64/mojo-mojotui-0.1.0-he8cfe8b_0.conda": {
+    "index": {
+      "arch": "aarch64",
+      "build": "he8cfe8b_0",
+      "build_number": 0,
+      "depends": [
+        "mojo-compiler >=1.0.0,<2.0a0",
+        "mojo-moji"
+      ],
+      "license": "MIT OR Apache-2.0",
+      "name": "mojo-mojotui",
+      "platform": "linux",
+      "subdir": "linux-aarch64",
+      "timestamp": 1787303709172,
+      "version": "0.1.0"
+    },
+    "reason": "Retained pre-ledger artifact with unsupported non-exact Mojo runtime; no verified source provenance. Never select for supported consumer installations.",
+    "sha256": "a4214d91727a2d41fa6754e861638d7e5ed771259a512e1eff85ec845495bc8c"
+  },
+  "linux-aarch64/mojo-shuhafft-0.0.0-he8cfe8b_0.conda": {
+    "index": {
+      "arch": "aarch64",
+      "build": "he8cfe8b_0",
+      "build_number": 0,
+      "depends": [
+        "mojo-compiler >=1.0.0,<2.0a0"
+      ],
+      "license": "MIT OR Apache-2.0",
+      "name": "mojo-shuhafft",
+      "platform": "linux",
+      "subdir": "linux-aarch64",
+      "timestamp": 1787303692509,
+      "version": "0.0.0"
+    },
+    "reason": "Retained pre-ledger artifact with unsupported non-exact Mojo runtime; no verified source provenance. Never select for supported consumer installations.",
+    "sha256": "17999e0efe53eaacefaf1b71a8a3bc72a3533bb13e9d250efd68b97ebdbbf3a2"
+  },
+  "osx-arm64/mojo-hibana-0.0.0-h60d57d3_0.conda": {
+    "index": {
+      "arch": "arm64",
+      "build": "h60d57d3_0",
+      "build_number": 0,
+      "depends": [
+        "mojo-compiler >=1.0.0,<2.0a0"
+      ],
+      "license": "MIT OR Apache-2.0",
+      "name": "mojo-hibana",
+      "platform": "osx",
+      "subdir": "osx-arm64",
+      "timestamp": 1787303705958,
+      "version": "0.0.0"
+    },
+    "reason": "Retained pre-ledger artifact with unsupported non-exact Mojo runtime; no verified source provenance. Never select for supported consumer installations.",
+    "sha256": "5429fab31ed4129759e2b76819f20a146af33e6f327b4cba65300a5b414e6d91"
+  },
+  "osx-arm64/mojo-moji-0.0.0-h60d57d3_0.conda": {
+    "index": {
+      "arch": "arm64",
+      "build": "h60d57d3_0",
+      "build_number": 0,
+      "depends": [
+        "mojo-compiler >=1.0.0,<2.0a0"
+      ],
+      "license": "MIT OR Apache-2.0",
+      "name": "mojo-moji",
+      "platform": "osx",
+      "subdir": "osx-arm64",
+      "timestamp": 1787303701060,
+      "version": "0.0.0"
+    },
+    "reason": "Retained pre-ledger artifact with unsupported non-exact Mojo runtime; no verified source provenance. Never select for supported consumer installations.",
+    "sha256": "2551ba7a9dcffd22014e06bfdcbd018810b11ad5e3341f68c9d9eb4fd6f26196"
+  },
+  "osx-arm64/mojo-mojotui-0.1.0-h60d57d3_0.conda": {
+    "index": {
+      "arch": "arm64",
+      "build": "h60d57d3_0",
+      "build_number": 0,
+      "depends": [
+        "mojo-compiler >=1.0.0,<2.0a0",
+        "mojo-moji"
+      ],
+      "license": "MIT OR Apache-2.0",
+      "name": "mojo-mojotui",
+      "platform": "osx",
+      "subdir": "osx-arm64",
+      "timestamp": 1787303709845,
+      "version": "0.1.0"
+    },
+    "reason": "Retained pre-ledger artifact with unsupported non-exact Mojo runtime; no verified source provenance. Never select for supported consumer installations.",
+    "sha256": "c2356998604d494148c37ffecc111493bcc4cd60f551f2600aa8dbe987dd30bf"
+  },
+  "osx-arm64/mojo-shuhafft-0.0.0-h60d57d3_0.conda": {
+    "index": {
+      "arch": "arm64",
+      "build": "h60d57d3_0",
+      "build_number": 0,
+      "depends": [
+        "mojo-compiler >=1.0.0,<2.0a0"
+      ],
+      "license": "MIT OR Apache-2.0",
+      "name": "mojo-shuhafft",
+      "platform": "osx",
+      "subdir": "osx-arm64",
+      "timestamp": 1787303693642,
+      "version": "0.0.0"
+    },
+    "reason": "Retained pre-ledger artifact with unsupported non-exact Mojo runtime; no verified source provenance. Never select for supported consumer installations.",
+    "sha256": "22d82e08261a782351ffc1e6e5ad340d8fb45a5c9394b4430e552792906b2b8b"
+  }
+}
