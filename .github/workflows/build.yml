@@ -1,4 +1,4 @@
-name: Build and publish package
+name: Build and propose package publication
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ on:
         default: main
         type: string
       publish:
-        description: Commit packages to the public channel (requires an annotated version tag)
+        description: Propose an immutable channel update for review (requires an annotated version tag)
         required: true
         default: false
         type: boolean
@@ -172,6 +172,10 @@ jobs:
           set -euo pipefail
           artifact="$(find "output/${EXPECTED_SUBDIR}" -maxdepth 1 -type f \
             -name "mojo-kumihan-${EXPECTED_VERSION}-*.conda" -print -quit)"
+          if [[ -z "$artifact" ]]; then
+            echo "No native Kumihan artifact found for ${EXPECTED_SUBDIR} ${EXPECTED_VERSION}" >&2
+            exit 1
+          fi
           ../channel/scripts/verify_native_consumer.sh \
             "$artifact" "$EXPECTED_SUBDIR" conda.recipe/test_package.mojo
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -183,7 +187,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Publish immutable channel update
+    name: Propose immutable channel update
     if: ${{ inputs.publish }}
     needs:
       - validate
@@ -191,6 +195,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      actions: write
     concurrency:
       group: mojo-channel-publish
       queue: max
@@ -293,7 +298,8 @@ jobs:
               "$subdir" \
               "$GITHUB_WORKSPACE"
           done < incoming/published.tsv
-      - name: Commit and push
+      - name: Commit an immutable release branch and dispatch its checks
+        id: proposal
         env:
           EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
           EXPECTED_SHA: ${{ needs.validate.outputs.sha }}
@@ -304,13 +310,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add artifacts.tsv linux-64 linux-aarch64 osx-arm64 noarch
-          git diff --cached --check
-          if git diff --cached --quiet; then
-            echo "The exact package bytes are already published."
-          else
-            git commit -m "Publish ${EXPECTED_PACKAGE} ${EXPECTED_VERSION} from ${EXPECTED_SHA}"
-          fi
-          git \
-            -c credential.helper= \
-            -c "credential.helper=!f() { printf '%s\\n' username=x-access-token \"password=\$GH_TOKEN\"; }; f" \
-            push origin HEAD:main
+          scripts/propose_release.sh

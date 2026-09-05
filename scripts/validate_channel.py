@@ -15,7 +15,6 @@ from typing import Any
 from validate_conda_runtime import (
     ValidationError,
     _read_index,
-    _reject_duplicate_keys,
     validate_runtime_dependency,
 )
 
@@ -26,8 +25,16 @@ REPOSITORIES = frozenset(
 
 
 def read_json(text: str, description: str) -> Any:
+    def reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValidationError(f"duplicate key {key!r}")
+            result[key] = value
+        return result
+
     try:
-        return json.loads(text, object_pairs_hook=_reject_duplicate_keys)
+        return json.loads(text, object_pairs_hook=reject_duplicates)
     except (json.JSONDecodeError, ValidationError) as error:
         raise ValidationError(f"{description}: {error}") from error
 
@@ -204,7 +211,8 @@ def validate_channel(root: Path, baseline_ref: str | None = None) -> dict[str, i
             metadata.get("packages.conda"), dict
         ):
             raise ValidationError(f"{subdir}: missing packages.conda mapping")
-        if metadata.get("info", {}).get("subdir") != subdir:
+        info = metadata.get("info")
+        if not isinstance(info, dict) or info.get("subdir") != subdir:
             raise ValidationError(f"{subdir}: repodata info.subdir mismatch")
         if metadata.get("packages", {}):
             raise ValidationError(

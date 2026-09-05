@@ -5,6 +5,14 @@ if [[ "$#" -ne 3 ]]; then
   echo "usage: $0 ARTIFACT SUBDIR SMOKE_SOURCE" >&2
   exit 2
 fi
+if [[ ! -f "$1" || ! -r "$1" ]]; then
+  echo "candidate artifact is not a readable file: $1" >&2
+  exit 2
+fi
+if [[ ! -f "$3" || ! -r "$3" ]]; then
+  echo "consumer smoke source is not a readable file: $3" >&2
+  exit 2
+fi
 artifact="$(cd "$(dirname "$1")" && pwd -P)/$(basename "$1")"
 subdir="$2"
 smoke_source="$3"
