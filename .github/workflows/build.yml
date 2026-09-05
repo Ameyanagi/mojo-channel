@@ -181,10 +181,43 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: package-${{ inputs.repository }}-${{ matrix.subdir }}
+          archive: true
           path: |
             source/output/${{ matrix.subdir }}/*.conda
             source/package-${{ matrix.subdir }}.sha256
           if-no-files-found: error
+
+  transfer:
+    name: Verify native artifact transfer
+    needs:
+      - validate
+      - build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: package-${{ inputs.repository }}-*
+          path: incoming
+          merge-multiple: true
+          digest-mismatch: error
+      - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
+        with:
+          pixi-version: v0.76.2
+          run-install: false
+      - name: Verify all three archives against native checksums and metadata
+        env:
+          EXPECTED_PACKAGE: ${{ needs.validate.outputs.package }}
+          EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          pixi exec --spec 'python=3.14.6' --spec 'zstd=1.5.7' \
+            python scripts/validate_transferred_packages.py incoming \
+            --package "$EXPECTED_PACKAGE" --version "$EXPECTED_VERSION"
 
   publish:
     name: Propose immutable channel update
@@ -192,6 +225,7 @@ jobs:
     needs:
       - validate
       - build
+      - transfer
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -207,8 +241,10 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
+          pattern: package-${{ inputs.repository }}-*
           path: incoming
           merge-multiple: true
+          digest-mismatch: error
       - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
         with:
           pixi-version: v0.76.2
@@ -228,9 +264,8 @@ jobs:
           pixi exec \
             --spec 'python=3.14.6' \
             --spec 'zstd=1.5.7' \
-            python scripts/validate_conda_runtime.py \
-            --expected-version 1.0.0 \
-            "${artifacts[@]}"
+            python scripts/validate_transferred_packages.py incoming \
+            --package "$EXPECTED_PACKAGE" --version "$EXPECTED_VERSION"
           touch artifacts.tsv
           : > incoming/published.tsv
           declare -A seen_subdirs=()

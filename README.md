@@ -98,3 +98,20 @@ verifies the resolved archive URL/hash against hosted repodata, and runs the
 annotated source release's package smoke test in a fresh directory. This workflow
 also supports Sen releases. Update library install documentation only after this
 hosted consumer check succeeds.
+
+## Artifact transfer preflight
+
+Every package preflight now runs **Verify native artifact transfer** after all
+three native builds upload their archives. It downloads the same six files the
+publisher consumes and verifies each native checksum, archive identity and exact
+Mojo runtime dependency. Missing, extra or changed files fail the gate. This job
+is read-only and never installs foreign-platform packages; publication waits for
+it and repeats the same validation after its own download.
+
+The upload-artifact v7 and download-artifact v8 pins retain archived multi-file uploads and enforce
+errors on download digest mismatches. Both use Node.js 24 on the existing hosted
+runners; Pixi 0.76.2 and Mojo 1.0.0 remain fixed. See the upstream
+[upload7 release notes](https://github.com/actions/upload-artifact/releases/tag/v7.0.0)
+and [download8 release notes](https://github.com/actions/download-artifact/releases/tag/v8.0.0)
+for the reviewed compatibility changes. Use `publish=false` when verifying future
+Action major upgrades; never overwrite an existing package to test transfer.
