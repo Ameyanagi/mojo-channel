@@ -10,6 +10,7 @@ on:
         options:
           - kumihan
           - sen
+          - mojotui
       version:
         description: Exact published X.Y.Z version and annotated source tag
         required: true

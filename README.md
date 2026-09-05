@@ -96,7 +96,7 @@ installation** with `repository=kumihan, version=0.1.0`. It installs
 `mojo-kumihan==0.1.0` from the public channel on all three native platforms,
 verifies the resolved archive URL/hash against hosted repodata, and runs the
 annotated source release's package smoke test in a fresh directory. This workflow
-also supports Sen releases. Update library install documentation only after this
+also supports Sen and MojoTUI releases. Update library install documentation only after this
 hosted consumer check succeeds.
 
 ## Artifact transfer preflight

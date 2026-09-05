@@ -14,6 +14,7 @@ import urllib.request
 from pathlib import Path
 
 CHANNEL = "https://ameyanagi.github.io/mojo-channel"
+PACKAGES = ("mojo-kumihan", "mojo-sen", "mojo-mojotui")
 NATIVE = {
     ("Linux", "x86_64"): "linux-64",
     ("Linux", "aarch64"): "linux-aarch64",
@@ -28,12 +29,48 @@ def run(*args: str, cwd: Path | None = None) -> str:
     return result.stdout
 
 
-def main() -> None:
+def validate_resolved_package(
+    packages: list[dict],
+    expected: dict[str, dict],
+    package: str,
+    version: str,
+    subdir: str,
+) -> dict:
+    """Require one exact installed package and a known native archive with its digest."""
+    matches = [record for record in packages if record.get("name") == package]
+    if len(matches) != 1 or matches[0].get("version") != version:
+        raise ValueError(f"exact consumer package mismatch: {matches}")
+    resolved = matches[0]
+    expected_urls = {
+        f"{CHANNEL}/{subdir}/{filename}": record.get("sha256")
+        for filename, record in expected.items()
+    }
+    url = resolved.get("url")
+    digest = resolved.get("sha256")
+    if (
+        not isinstance(url, str)
+        or url not in expected_urls
+        or not isinstance(digest, str)
+        or not re.fullmatch(r"[0-9a-f]{64}", digest)
+        or expected_urls[url] != digest
+    ):
+        raise ValueError(
+            f"consumer archive URL/hash does not match hosted index: {resolved}"
+        )
+    return resolved
+
+
+def argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("package", choices=("mojo-kumihan", "mojo-sen"))
+    parser.add_argument("package", choices=PACKAGES)
     parser.add_argument("version")
     parser.add_argument("subdir", choices=tuple(NATIVE.values()))
     parser.add_argument("smoke", type=Path)
+    return parser
+
+
+def main() -> None:
+    parser = argument_parser()
     args = parser.parse_args()
     if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", args.version):
         parser.error("version must be X.Y.Z")
@@ -91,18 +128,9 @@ def main() -> None:
                 "--frozen",
             )
         )
-        matches = [package for package in packages if package["name"] == args.package]
-        if len(matches) != 1 or matches[0]["version"] != args.version:
-            raise ValueError(f"exact consumer package mismatch: {matches}")
-        resolved = matches[0]
-        expected_urls = {
-            f"{CHANNEL}/{args.subdir}/{filename}": record["sha256"]
-            for filename, record in expected.items()
-        }
-        if expected_urls.get(resolved["url"]) != resolved["sha256"]:
-            raise ValueError(
-                f"consumer archive URL/hash does not match hosted index: {resolved}"
-            )
+        resolved = validate_resolved_package(
+            packages, expected, args.package, args.version, args.subdir
+        )
         print(run("pixi", "run", "--locked", "mojo", "run", "smoke.mojo", cwd=consumer))
         print(
             json.dumps(
